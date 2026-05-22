@@ -321,8 +321,11 @@ class AR(nn.Module):
 
         # --------------------------------------------------------------------------
         # network
+        # Q1: Why do we deal with 3 copies of squared patch_size for embedding? 
+        # A1: likely dealing independently with unit of "3 channels of image patch" --> 3 x patch_size x patch_size sized inputs 
         self.patch_emb = nn.Linear(3 * patch_size ** 2, embed_dim, bias=True)
         self.patch_emb_ln = nn.LayerNorm(embed_dim, eps=1e-6)
+        # Extra dimension added to cope with batch_size inputs etc.
         self.pos_embed_learned = nn.Parameter(torch.zeros(1, seq_len+1, embed_dim))
         self.cond_emb = nn.Linear(cond_embed_dim, embed_dim, bias=True)
 
@@ -330,8 +333,9 @@ class AR(nn.Module):
         self.blocks = nn.ModuleList([TransformerBlock(config=model_args, drop_path=0.0) for _ in range(num_blocks)])
 
         # 2d rotary pos embedding
-        grid_size = int(seq_len ** 0.5)
+        grid_size = int(seq_len ** 0.5) # require seq_len be a square number
         assert grid_size * grid_size == seq_len
+        # miscellaneous position emb
         self.freqs_cis = precompute_freqs_cis_2d(grid_size, model_args.dim // model_args.n_head,
                                                  model_args.rope_base, cls_token_num=1).cuda()
 
